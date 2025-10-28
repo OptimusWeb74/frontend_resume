@@ -1,8 +1,8 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import Home from "./pages/Home.jsx";
-import Layout from "./pages/Layout";
-import Dashboard from "./pages/dashboard.jsx";
+import Layout from "./pages/Layout.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 import ResumeBuilder from "./pages/ResumeBuilder.jsx";
 import Preview from "./pages/Preview.jsx";
 import { Toaster } from "react-hot-toast";

@@ -1,9 +1,9 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Navbar from "../components/Navbar";
+import Navbar from "../components/Navbar.jsx";
 import { useSelector } from "react-redux";
-import Loader from "../components/Loader";
-import Login from "./Login";
+import Loader from "../components/Loader.jsx";
+import Login from "./Login.jsx";
 function Layout() {
   const { user, loading } = useSelector((state) => state.auth);
   if (loading) {

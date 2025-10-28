@@ -3,7 +3,7 @@ import React from "react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
-import api from "../configs/api";
+import api from "../configs/api.js";
 
 const ProfessionalSummaryForm = ({ data, onChange, setResumeData }) => {
   const { token } = useSelector((state) => state.auth);

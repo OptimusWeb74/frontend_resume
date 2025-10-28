@@ -10,11 +10,11 @@ import {
   XIcon,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { dummyResumeData } from "../assets/assets";
+
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import api from "../configs/api";
+import api from "../configs/api.js";
 import pdfToText from "react-pdftotext"
 function Dashboard() {
 
