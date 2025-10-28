@@ -12,7 +12,7 @@ const ForgotPassword = () => {
 
     try {
       const res = await fetch(
-        "https://backend-resume-ltta.onrender.com/api/users/forgot-password",
+        "https://backend-resume-loop.onrender.com/api/users/forgot-password",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -15,7 +15,7 @@ const ResetPassword = () => {
 
     try {
       const res = await fetch(
-        `https://backend-resume-ltta.onrender.com/api/users/reset-password/${token}`,
+        `https://backend-resume-loop.onrender.com/api/users/reset-password/${token}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -27,7 +27,7 @@ const ResetPassword = () => {
       setMessage(data.message);
 
       if (res.ok) {
-        setTimeout(() => navigate("/login"), 2000);
+        setTimeout(() => navigate("/app"), 2000);
       }
     } catch (error) {
       setMessage("Something went wrong. Try again.");
