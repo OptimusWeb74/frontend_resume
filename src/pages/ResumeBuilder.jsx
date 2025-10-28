@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-
 import {
   ArrowLeftIcon,
   Briefcase,
@@ -12,7 +11,6 @@ import {
   FileText,
   FolderIcon,
   GraduationCap,
-  Share2,
   Share2Icon,
   Sparkle,
   User,
@@ -33,6 +31,7 @@ import toast from "react-hot-toast";
 function ResumeBuilder() {
   const { resumeId } = useParams();
   const { token } = useSelector((state) => state.auth);
+
   const [resumeData, setResumeData] = useState({
     _id: "",
     title: "",
@@ -46,12 +45,28 @@ function ResumeBuilder() {
     accent_color: "#3B82F6",
     public: false,
   });
+
+  const [lastSaved, setLastSaved] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const [removeBackground, setRemoveBackground] = useState(false);
+
+  const sections = [
+    { id: "personal", name: "Personal Info", icon: User },
+    { id: "summary", name: "Summary", icon: FileText },
+    { id: "experience", name: "Experience", icon: Briefcase },
+    { id: "education", name: "Education", icon: GraduationCap },
+    { id: "projects", name: "Projects", icon: FolderIcon },
+    { id: "skills", name: "Skills", icon: Sparkle },
+  ];
+
+  const activeSection = sections[activeSectionIndex];
+
+  // Load existing resume on mount
   const loadExistingResume = async () => {
     try {
       const { data } = await api.get("/api/resumes/get/" + resumeId, {
-        headers: {
-          Authorization: token,
-        },
+        headers: { Authorization: token },
       });
       if (data.resume) {
         setResumeData(data.resume);
@@ -62,57 +77,15 @@ function ResumeBuilder() {
     }
   };
 
-  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
-  const [removeBackground, setRemoveBackground] = useState(false);
-  const sections = [
-    { id: "personal", name: "Personal Info", icon: User },
-    { id: "summary", name: "Summary", icon: FileText },
-    { id: "experience", name: "Experience", icon: Briefcase },
-    { id: "education", name: "Education", icon: GraduationCap },
-    { id: "projects", name: "Projects", icon: FolderIcon },
-    { id: "skills", name: "Skills", icon: Sparkle },
-  ];
-  const activeSection = sections[activeSectionIndex];
   useEffect(() => {
     loadExistingResume();
   }, []);
-  const changeResumeVisibility = async () => {
-    try {
-      const formData = new FormData();
-      formData.append("resumeId", resumeId);
-      formData.append(
-        "resumeData",
-        JSON.stringify({ public: !resumeData.public })
-      );
-      const { data } = await api.put("/api/resumes/update", formData, {
-        headers: {
-          Authorization: token,
-        },
-      });
-      setResumeData({ ...resumeData, public: !resumeData.public });
-      toast.success(data.message);
-    } catch (error) {
-      console.error("Error saving resume:", error);
-    }
-  };
-  const handleShare = () => {
-    const frontendUrl = window.location.href.split("/app")[0];
 
-    const resumeUrl = frontendUrl + "/view/" + resumeId;
-
-    if (navigator.share) {
-      navigator.share({ url: resumeUrl, text: "My Resume" });
-    } else {
-      alert("Share not supported on this browser.");
-    }
-  };
-  const downloadResume = () => {
-    window.print();
-  };
+  // Manual save
   const saveResume = async () => {
     try {
+      setSaving(true);
       let updatedResumeData = structuredClone(resumeData);
-      // remove image from unpdatedResumeData
       if (typeof resumeData.personal_info.image === "object") {
         delete updatedResumeData.personal_info.image;
       }
@@ -123,17 +96,89 @@ function ResumeBuilder() {
       removeBackground && formData.append("removeBackground", "yes");
       typeof resumeData.personal_info.image === "object" &&
         formData.append("image", resumeData.personal_info.image);
+
       const { data } = await api.put("/api/resumes/update", formData, {
-        headers: {
-          Authorization: token,
-        },
+        headers: { Authorization: token },
       });
+
       setResumeData(data.resume);
+      setLastSaved(new Date().toLocaleTimeString());
+      toast.success(data.message);
+    } catch (error) {
+      console.error("Error saving resume:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ✅ Auto-save logic
+  useEffect(() => {
+    if (!resumeData._id) return; // Wait until resume is loaded
+
+    const debounceTimer = setTimeout(async () => {
+      try {
+        setSaving(true);
+        let updatedResumeData = structuredClone(resumeData);
+        if (typeof resumeData.personal_info.image === "object") {
+          delete updatedResumeData.personal_info.image;
+        }
+
+        const formData = new FormData();
+        formData.append("resumeId", resumeId);
+        formData.append("resumeData", JSON.stringify(updatedResumeData));
+        removeBackground && formData.append("removeBackground", "yes");
+        typeof resumeData.personal_info.image === "object" &&
+          formData.append("image", resumeData.personal_info.image);
+
+        await api.put("/api/resumes/update", formData, {
+          headers: { Authorization: token },
+        });
+
+        setLastSaved(new Date().toLocaleTimeString());
+        console.log("Auto-saved successfully!");
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+      } finally {
+        setSaving(false);
+      }
+    }, 2500); // 2.5 seconds delay after edits stop
+
+    return () => clearTimeout(debounceTimer);
+  }, [resumeData]);
+
+  const changeResumeVisibility = async () => {
+    try {
+      const formData = new FormData();
+      formData.append("resumeId", resumeId);
+      formData.append(
+        "resumeData",
+        JSON.stringify({ public: !resumeData.public })
+      );
+      const { data } = await api.put("/api/resumes/update", formData, {
+        headers: { Authorization: token },
+      });
+      setResumeData({ ...resumeData, public: !resumeData.public });
       toast.success(data.message);
     } catch (error) {
       console.error("Error saving resume:", error);
     }
   };
+
+  const handleShare = () => {
+    const frontendUrl = window.location.href.split("/app")[0];
+    const resumeUrl = frontendUrl + "/view/" + resumeId;
+
+    if (navigator.share) {
+      navigator.share({ url: resumeUrl, text: "My Resume" });
+    } else {
+      alert("Share not supported on this browser.");
+    }
+  };
+
+  const downloadResume = () => {
+    window.print();
+  };
+
   return (
     <div>
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -144,12 +189,13 @@ function ResumeBuilder() {
           <ArrowLeftIcon className="size-14" /> Back to Dashboard
         </Link>
       </div>
+
       <div className="max-w-7xl mx-auto px-4 pb-8">
         <div className="grid lg:grid-cols-12 gap-8">
-          {/* Left Panel - Form  */}
+          {/* Left Panel */}
           <div className="relative lg:col-span-5 rounded-lg overflow-hidden">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 pt-1">
-              {/* progress bar using activeSectioniNDEX  */}
+              {/* Progress Bar */}
               <hr className="absolute top-0 left-0 right-0 border-2 border-gray-200" />
               <hr
                 className="absolute top-0 left-0 h-1 bg-gradient-to-r from-green-500 to-green-600 border-none transition-all duration-2000"
@@ -159,9 +205,10 @@ function ResumeBuilder() {
                   }%`,
                 }}
               />
-              {/* Section Navigation  */}
+
+              {/* Navigation */}
               <div className="flex justify-between items-center mb-6 border-b border-gray-300 py-1">
-                <div className="flex  items-center gap-2">
+                <div className="flex items-center gap-2">
                   <TemplateSelector
                     selectedTemplate={resumeData.template}
                     onChange={(template) =>
@@ -178,24 +225,22 @@ function ResumeBuilder() {
                     }
                   />
                 </div>
-                <div className="flex items-center"></div>
                 {activeSectionIndex !== 0 && (
                   <button
                     onClick={() =>
-                      setActiveSectionIndex((prevIndex) =>
-                        Math.max(prevIndex - 1, 0)
+                      setActiveSectionIndex((prev) =>
+                        Math.max(prev - 1, 0)
                       )
                     }
                     className="flex items-center gap-1 p-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
-                    disabled={activeSectionIndex === 0}
                   >
                     <ChevronLeft className="size-4" /> Previous
                   </button>
                 )}
                 <button
                   onClick={() =>
-                    setActiveSectionIndex((prevIndex) =>
-                      Math.min(prevIndex + 1, sections.length - 1)
+                    setActiveSectionIndex((prev) =>
+                      Math.min(prev + 1, sections.length - 1)
                     )
                   }
                   className={`flex items-center gap-1 p-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all ${
@@ -205,9 +250,9 @@ function ResumeBuilder() {
                 >
                   Next <ChevronRight className="size-4" />
                 </button>
-                <div></div>
               </div>
-              {/* Form Content  */}
+
+              {/* Form Content */}
               <div className="space-y-6">
                 {activeSection.id === "personal" && (
                   <PersonalInfoForm
@@ -238,7 +283,10 @@ function ResumeBuilder() {
                   <ExperienceForm
                     data={resumeData.experience}
                     onChange={(data) =>
-                      setResumeData((prev) => ({ ...prev, experience: data }))
+                      setResumeData((prev) => ({
+                        ...prev,
+                        experience: data,
+                      }))
                     }
                   />
                 )}
@@ -246,7 +294,10 @@ function ResumeBuilder() {
                   <EducationForm
                     data={resumeData.education}
                     onChange={(data) =>
-                      setResumeData((prev) => ({ ...prev, education: data }))
+                      setResumeData((prev) => ({
+                        ...prev,
+                        education: data,
+                      }))
                     }
                   />
                 )}
@@ -254,7 +305,10 @@ function ResumeBuilder() {
                   <ProjectForm
                     data={resumeData.project}
                     onChange={(data) =>
-                      setResumeData((prev) => ({ ...prev, project: data }))
+                      setResumeData((prev) => ({
+                        ...prev,
+                        project: data,
+                      }))
                     }
                   />
                 )}
@@ -262,22 +316,33 @@ function ResumeBuilder() {
                   <SkillsForm
                     data={resumeData.skills}
                     onChange={(data) =>
-                      setResumeData((prev) => ({ ...prev, skills: data }))
+                      setResumeData((prev) => ({
+                        ...prev,
+                        skills: data,
+                      }))
                     }
                   />
                 )}
               </div>
+
+              {/* Save Button */}
               <button
-                onClick={() => {
-                  toast.promise(saveResume, { loading: "Saving..." });
-                }}
+                onClick={() => toast.promise(saveResume(), { loading: "Saving..." })}
                 className="bg-gradient-to-br from-green-100 to-green-200 ring-green-300 text-green-600 ring hover:ring-green-400 transition-all rounded-md px-6 py-2 mt-6 text-sm"
+                disabled={saving}
               >
-                Save Changes
+                {saving ? "Saving..." : "Save Changes"}
               </button>
+
+              {lastSaved && (
+                <p className="text-xs text-gray-400 mt-2">
+                  Auto-saved at {lastSaved}
+                </p>
+              )}
             </div>
           </div>
-          {/* Right Panel - Preview  */}
+
+          {/* Right Panel - Preview */}
           <div className="lg:col-span-7 max-lg:mt-6">
             <div className="relative w-full">
               <div className="absolute bottom-3 left-0 right-0 flex items-center justify-end gap-2">

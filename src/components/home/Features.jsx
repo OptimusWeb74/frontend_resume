@@ -14,7 +14,10 @@ function Features() {
         <Zap width={14} />
         <span>Simple Process</span>
       </div>
-      <Title title='Build your resume' description='Our streamlined process helps you create a professional resume in minutes with inelligent AI-powered tools and features.' />
+      <Title
+        title="Build your resume effortlessly"
+        description="Our AI-powered resume builder simplifies every step — from layout selection to optimized wording — so you can create a professional resume in minutes."
+      />
       <div className="flex flex-col md:flex-row items-center justify-center xl:-mt-10">
         <img
           className="max-w-2xl w-full xl:-ml-32"
@@ -26,6 +29,7 @@ function Features() {
           onMouseEnter={() => setIsHover(true)}
           onMouseLeave={() => setIsHover(false)}
         >
+          {/* Feature 1 */}
           <div
             className={
               "flex items-center justify-center gap-6 max-w-md group cursor-pointer"
@@ -53,14 +57,16 @@ function Features() {
               </svg>
               <div className="space-y-2">
                 <h3 className="text-base font-semibold text-slate-700">
-                  Real-Time Analytics
+                  AI-Powered Suggestions
                 </h3>
                 <p className="text-sm text-slate-600 max-w-xs">
-                  Get instant insights into your finances with live dashboards.
+                  Get smart keyword and phrasing suggestions that make your resume stand out to recruiters and ATS systems.
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Feature 2 */}
           <div className="flex items-center justify-center gap-6 max-w-md group cursor-pointer">
             <div className="p-6 group-hover:bg-green-100 border border-transparent group-hover:border-green-300 flex gap-4 rounded-xl transition-colors">
               <svg
@@ -80,14 +86,16 @@ function Features() {
               </svg>
               <div className="space-y-2">
                 <h3 className="text-base font-semibold text-slate-700">
-                  Bank-Grade Security
+                  Professional Templates
                 </h3>
                 <p className="text-sm text-slate-600 max-w-xs">
-                  End-to-end encryption, 2FA, compliance with GDPR standards.
+                  Choose from clean, recruiter-approved templates that adapt perfectly to your content and career field.
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Feature 3 */}
           <div className="flex items-center justify-center gap-6 max-w-md group cursor-pointer">
             <div className="p-6 group-hover:bg-orange-100 border border-transparent group-hover:border-orange-300 flex gap-4 rounded-xl transition-colors">
               <svg
@@ -108,24 +116,49 @@ function Features() {
               </svg>
               <div className="space-y-2">
                 <h3 className="text-base font-semibold text-slate-700">
-                  Customizable Reports
+                  Instant PDF Downloads
                 </h3>
                 <p className="text-sm text-slate-600 max-w-xs">
-                  Export professional, audit-ready financial reports for tax or
-                  internal review.
+                  Export your finished resume instantly in high-quality PDF format — ready to send or print anytime.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature 4 */}
+          <div className="flex items-center justify-center gap-6 max-w-md group cursor-pointer">
+            <div className="p-6 group-hover:bg-blue-100 border border-transparent group-hover:border-blue-300 flex gap-4 rounded-xl transition-colors">
+              <svg
+                className="size-6 stroke-blue-600"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 20v-6m0 0V4m0 10H5m7 0h7" />
+              </svg>
+              <div className="space-y-2">
+                <h3 className="text-base font-semibold text-slate-700">
+                  Auto-Save & Cloud Access
+                </h3>
+                <p className="text-sm text-slate-600 max-w-xs">
+                  Never lose your progress — your resumes are automatically saved and accessible from any device.
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
+
       <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-            
-                * {
-                    font-family: 'Poppins', sans-serif;
-                }
-            `}</style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+      `}</style>
     </div>
   );
 }
