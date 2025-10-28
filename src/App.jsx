@@ -10,6 +10,9 @@ import { useDispatch } from "react-redux";
 import api from "./configs/api.js";
 import { login, setLoading } from "./app/features/authSlice.js";
 import { useEffect } from "react";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
 function App() {
   const dispatch = useDispatch();
   const getUserData = async () => {
@@ -44,6 +47,8 @@ function App() {
           <Route path="builder/:resumeId" element={<ResumeBuilder />} />
         </Route>
         <Route path="view/:resumeId" element={<Preview />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
     </>
   );
