@@ -18,8 +18,8 @@ function Hero() {
       <div className="min-h-screen pb-20">
         {/* Navbar */}
         <nav className="z-50 flex items-center justify-between w-full py-4 px-6 md:px-16 lg:px-24 xl:px-40 text-sm">
-          <a href="https://prebuiltui.com">
-            <img src="/logo.svg" alt='logo' className="h-11 w-auto" />
+          <a href="/">
+            <img src="/logo.svg" alt='logo' className="h-20 w-auto" />
           </a>
 
           <div className="hidden md:flex items-center gap-8 transition duration-500 text-slate-800">
@@ -90,9 +90,14 @@ function Hero() {
           <a href="#testimonials" className="text-white">
             Testimonials
           </a>
-          <a href="#cta" className="text-white">
-            Contact
-          </a>
+          <a
+              href='/app?state=login'
+              className="text-white"
+            hidden={user}>
+              Login
+            </a>
+            <a href='/app' className="text-white" hidden={!user}> Dashboard
+            </a>
           <button
             onClick={() => setMenuOpen(false)}
             className="active:ring-3 active:ring-white aspect-square size-10 p-1 items-center justify-center bg-green-600 hover:bg-green-700 transition text-white rounded-md flex"
@@ -109,7 +114,7 @@ function Hero() {
           <div className="flex items-center mt-24">
             <div className="flex -space-x-3 pr-3">
               <img
-                src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200"
+                src="https://images.unsplash.com/photo-1676293038938-e9b489e47587?q=80&w=200"
                 alt="user3"
                 className="size-8 object-cover rounded-full border-2 border-white hover:-translate-y-0.5 transition z-[1]"
               />
@@ -119,7 +124,7 @@ function Hero() {
                 className="size-8 object-cover rounded-full border-2 border-white hover:-translate-y-0.5 transition z-2"
               />
               <img
-                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200"
+                src="https://images.unsplash.com/photo-1679480911476-3ee732578062?q=80&w=200"
                 alt="user2"
                 className="size-8 object-cover rounded-full border-2 border-white hover:-translate-y-0.5 transition z-[3]"
               />
@@ -158,7 +163,7 @@ function Hero() {
                     </svg>
                   ))}
               </div>
-              <p className="text-sm text-gray-700">Used by 10,000+ users</p>
+              <p className="text-sm text-gray-700">Used by 2,000+ users</p>
             </div>
           </div>
 
@@ -199,44 +204,10 @@ function Hero() {
                 <path d="m12 5 7 7-7 7"></path>
               </svg>
             </Link>
-            <button className="flex items-center gap-2 border border-slate-400 hover:bg-green-50 transition rounded-full px-7 h-12 text-slate-700">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-video size-5"
-                aria-hidden="true"
-              >
-                <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"></path>
-                <rect x="2" y="6" width="14" height="12" rx="2"></rect>
-              </svg>
-              <span>Try demo</span>
-            </button>
+            
           </div>
 
-          <p className="py-6 text-slate-600 mt-14">
-            Trusting by leading brands, including
-          </p>
-
-          <div
-            className="flex flex-wrap justify-between max-sm:justify-center gap-6 max-w-3xl w-full mx-auto py-4"
-            id="logo-container"
-          >
-            {logos.map((logo, index) => (
-              <img
-                key={index}
-                src={logo}
-                alt="logo"
-                className="h-6 w-auto max-w-xs"
-              />
-            ))}
-          </div>
+          
         </div>
       </div>
       <style>
