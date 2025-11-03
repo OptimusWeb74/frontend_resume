@@ -15,3 +15,20 @@
     @apply outline-none focus:ring border border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg resize-none;
   }
 }
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .resume-preview {
+    background-color: inherit !important;
+    background-image: inherit !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+}
