@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
@@ -27,10 +27,13 @@ import SkillsForm from "../components/SkillsForm";
 import { useSelector } from "react-redux";
 import api from "../configs/api";
 import toast from "react-hot-toast";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 function ResumeBuilder() {
   const { resumeId } = useParams();
   const { token } = useSelector((state) => state.auth);
+  const resumePreviewRef = useRef(null);
 
   const [resumeData, setResumeData] = useState({
     _id: "",
@@ -50,6 +53,7 @@ function ResumeBuilder() {
   const [saving, setSaving] = useState(false);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [removeBackground, setRemoveBackground] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const sections = [
     { id: "personal", name: "Personal Info", icon: User },
@@ -81,7 +85,7 @@ function ResumeBuilder() {
     loadExistingResume();
   }, []);
 
-  // Manual save
+  // Manual save (with error handling for image issues)
   const saveResume = async () => {
     try {
       setSaving(true);
@@ -106,12 +110,25 @@ function ResumeBuilder() {
       toast.success(data.message);
     } catch (error) {
       console.error("Error saving resume:", error);
+
+      // Detect backend image processing error and give a user-friendly message
+      const backendMessage = error?.response?.data?.message || "";
+      if (
+        typeof backendMessage === "string" &&
+        backendMessage.toLowerCase().includes("process this photo")
+      ) {
+        toast.error(
+          "Your photo couldn't be processed. Please upload a different image (JPG, PNG or WEBP, <5MB)."
+        );
+      } else {
+        toast.error(backendMessage || "Failed to save resume.");
+      }
     } finally {
       setSaving(false);
     }
   };
 
-  // ✅ Auto-save logic
+  // ✅ Auto-save logic (with same error handling)
   useEffect(() => {
     if (!resumeData._id) return; // Wait until resume is loaded
 
@@ -138,6 +155,20 @@ function ResumeBuilder() {
         console.log("Auto-saved successfully!");
       } catch (error) {
         console.error("Auto-save failed:", error);
+
+        const backendMessage = error?.response?.data?.message || "";
+        if (
+          typeof backendMessage === "string" &&
+          backendMessage.toLowerCase().includes("process this photo")
+        ) {
+          toast.error(
+            "Your photo couldn't be processed. Please upload a different image (JPG, PNG or WEBP, <5MB)."
+          );
+        } else {
+          // Optionally show a subtle toast for other auto-save failures
+          // toast.error(backendMessage || "Auto-save failed.");
+          console.warn("Auto-save error (non-blocking):", backendMessage);
+        }
       } finally {
         setSaving(false);
       }
@@ -161,6 +192,18 @@ function ResumeBuilder() {
       toast.success(data.message);
     } catch (error) {
       console.error("Error saving resume:", error);
+
+      const backendMessage = error?.response?.data?.message || "";
+      if (
+        typeof backendMessage === "string" &&
+        backendMessage.toLowerCase().includes("process this photo")
+      ) {
+        toast.error(
+          "Your photo couldn't be processed. Please upload a different image (JPG, PNG or WEBP, <5MB)."
+        );
+      } else {
+        toast.error(backendMessage || "Failed to change visibility.");
+      }
     }
   };
 
@@ -177,6 +220,133 @@ function ResumeBuilder() {
 
   const downloadResume = () => {
     window.print();
+  };
+
+  // PDF generation functions (kept as before)
+  const downloadResumeSimple = async () => {
+    setDownloading(true);
+    const downloadToast = toast.loading("Preparing download...");
+
+    try {
+      const element = resumePreviewRef.current;
+      if (!element) {
+        throw new Error("Resume preview not found");
+      }
+
+      // Simple approach with fixed dimensions
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${resumeData.title || "resume"}.pdf`);
+
+      toast.success("Resume downloaded successfully!", { id: downloadToast });
+    } catch (error) {
+      console.error("Error in simple PDF generation:", error);
+      toast.error("Download failed. Please try again.", { id: downloadToast });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // Advanced paginated PDF (kept if you need it)
+  const downloadResumePaginated = async () => {
+    setDownloading(true);
+    const downloadToast = toast.loading("Generating PDF...");
+
+    try {
+      const element = resumePreviewRef.current;
+      if (!element) {
+        throw new Error("Resume preview not found");
+      }
+
+      // Ensure the element is visible and properly rendered
+      element.style.display = "block";
+
+      // Wait for images to load
+      const images = element.getElementsByTagName("img");
+      const imagePromises = Array.from(images).map((img) => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      });
+
+      await Promise.all(imagePromises);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.querySelector(".resume-preview-container");
+          if (clonedElement) {
+            clonedElement.style.width = "100%";
+            clonedElement.style.height = "auto";
+            clonedElement.style.display = "block";
+          }
+        },
+      });
+
+      const imgData = canvas.toDataURL("image/png", 1.0);
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      let position = 0;
+      let heightLeft = imgHeight;
+
+      // Add first page
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      // Add additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      pdf.save(`${resumeData.title || "resume"}.pdf`);
+
+      toast.success("Resume downloaded successfully!", { id: downloadToast });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+
+      toast.error("PDF generation failed. Using print method instead.", {
+        id: downloadToast,
+      });
+      setTimeout(() => {
+        window.print();
+      }, 1000);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -200,9 +370,7 @@ function ResumeBuilder() {
               <hr
                 className="absolute top-0 left-0 h-1 bg-gradient-to-r from-green-500 to-green-600 border-none transition-all duration-2000"
                 style={{
-                  width: `${
-                    (activeSectionIndex * 100) / (sections.length - 1)
-                  }%`,
+                  width: `${(activeSectionIndex * 100) / (sections.length - 1)}%`,
                 }}
               />
 
@@ -218,34 +386,21 @@ function ResumeBuilder() {
                   <ColorPicker
                     selectedColor={resumeData.accent_color}
                     onChange={(color) =>
-                      setResumeData((prev) => ({
-                        ...prev,
-                        accent_color: color,
-                      }))
+                      setResumeData((prev) => ({ ...prev, accent_color: color }))
                     }
                   />
                 </div>
                 {activeSectionIndex !== 0 && (
                   <button
-                    onClick={() =>
-                      setActiveSectionIndex((prev) =>
-                        Math.max(prev - 1, 0)
-                      )
-                    }
+                    onClick={() => setActiveSectionIndex((prev) => Math.max(prev - 1, 0))}
                     className="flex items-center gap-1 p-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
                   >
                     <ChevronLeft className="size-4" /> Previous
                   </button>
                 )}
                 <button
-                  onClick={() =>
-                    setActiveSectionIndex((prev) =>
-                      Math.min(prev + 1, sections.length - 1)
-                    )
-                  }
-                  className={`flex items-center gap-1 p-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all ${
-                    activeSectionIndex === sections.length - 1 && "opacity-50"
-                  }`}
+                  onClick={() => setActiveSectionIndex((prev) => Math.min(prev + 1, sections.length - 1))}
+                  className={`flex items-center gap-1 p-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all ${activeSectionIndex === sections.length - 1 && "opacity-50"}`}
                   disabled={activeSectionIndex === sections.length - 1}
                 >
                   Next <ChevronRight className="size-4" />
@@ -257,12 +412,7 @@ function ResumeBuilder() {
                 {activeSection.id === "personal" && (
                   <PersonalInfoForm
                     data={resumeData.personal_info}
-                    onChange={(data) =>
-                      setResumeData((prev) => ({
-                        ...prev,
-                        personal_info: data,
-                      }))
-                    }
+                    onChange={(data) => setResumeData((prev) => ({ ...prev, personal_info: data }))}
                     removeBackground={removeBackground}
                     setRemoveBackground={setRemoveBackground}
                   />
@@ -270,57 +420,32 @@ function ResumeBuilder() {
                 {activeSection.id === "summary" && (
                   <ProfessionalSummaryForm
                     data={resumeData.professional_summary}
-                    onChange={(data) =>
-                      setResumeData((prev) => ({
-                        ...prev,
-                        professional_summary: data,
-                      }))
-                    }
+                    onChange={(data) => setResumeData((prev) => ({ ...prev, professional_summary: data }))}
                     setResumeData={setResumeData}
                   />
                 )}
                 {activeSection.id === "experience" && (
                   <ExperienceForm
                     data={resumeData.experience}
-                    onChange={(data) =>
-                      setResumeData((prev) => ({
-                        ...prev,
-                        experience: data,
-                      }))
-                    }
+                    onChange={(data) => setResumeData((prev) => ({ ...prev, experience: data }))}
                   />
                 )}
                 {activeSection.id === "education" && (
                   <EducationForm
                     data={resumeData.education}
-                    onChange={(data) =>
-                      setResumeData((prev) => ({
-                        ...prev,
-                        education: data,
-                      }))
-                    }
+                    onChange={(data) => setResumeData((prev) => ({ ...prev, education: data }))}
                   />
                 )}
                 {activeSection.id === "projects" && (
                   <ProjectForm
                     data={resumeData.project}
-                    onChange={(data) =>
-                      setResumeData((prev) => ({
-                        ...prev,
-                        project: data,
-                      }))
-                    }
+                    onChange={(data) => setResumeData((prev) => ({ ...prev, project: data }))}
                   />
                 )}
                 {activeSection.id === "skills" && (
                   <SkillsForm
                     data={resumeData.skills}
-                    onChange={(data) =>
-                      setResumeData((prev) => ({
-                        ...prev,
-                        skills: data,
-                      }))
-                    }
+                    onChange={(data) => setResumeData((prev) => ({ ...prev, skills: data }))}
                   />
                 )}
               </div>
@@ -334,11 +459,7 @@ function ResumeBuilder() {
                 {saving ? "Saving..." : "Save Changes"}
               </button>
 
-              {lastSaved && (
-                <p className="text-xs text-gray-400 mt-2">
-                  Auto-saved at {lastSaved}
-                </p>
-              )}
+              {lastSaved && <p className="text-xs text-gray-400 mt-2">Auto-saved at {lastSaved}</p>}
             </div>
           </div>
 
@@ -359,27 +480,23 @@ function ResumeBuilder() {
                   onClick={changeResumeVisibility}
                   className="flex items-center p-2 px-4 gap-2 text-xs bg-gradient-to-br from-purple-100 to-purple-200 text-purple-600 ring-purple-300 rounded-lg hover:ring transition-colors"
                 >
-                  {resumeData.public ? (
-                    <EyeIcon className="size-4" />
-                  ) : (
-                    <EyeOffIcon className="size-4" />
-                  )}
+                  {resumeData.public ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
                   {resumeData.public ? "Public" : "Private"}
                 </button>
                 <button
-                  onClick={downloadResume}
-                  className="flex items-center gap-2 px-6 py-2 text-xs bg-gradient-to-br from-green-100 to-green-200 text-green-600 rounded-lg ring-green-300 hover:ring transition-colors"
+                  onClick={downloadResumeSimple}
+                  disabled={downloading}
+                  className="flex items-center gap-2 px-6 py-2 text-xs bg-gradient-to-br from-green-100 to-green-200 text-green-600 rounded-lg ring-green-300 hover:ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <DownloadIcon className="size-4" />
-                  Download
+                  {downloading ? "Generating..." : "Download"}
                 </button>
               </div>
             </div>
-            <ResumePreview
-              data={resumeData}
-              template={resumeData.template}
-              accentColor={resumeData.accent_color}
-            />
+            {/* Wrap ResumePreview with ref for PDF generation */}
+            <div ref={resumePreviewRef} className="resume-preview-container">
+              <ResumePreview data={resumeData} template={resumeData.template} accentColor={resumeData.accent_color} />
+            </div>
           </div>
         </div>
       </div>
